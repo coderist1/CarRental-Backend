@@ -140,3 +140,48 @@ class CarListView(generics.ListCreateAPIView):
             'status': 'error',
             'errors': serializer.errors,
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CarDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET    /api/cars/<id>/  — Retrieve a single car
+    PUT    /api/cars/<id>/  — Update a car (full update)
+    PATCH  /api/cars/<id>/  — Partial update a car
+    DELETE /api/cars/<id>/  — Delete a car
+    """
+    queryset = Car.objects.all()
+    serializer_class = CarSerializer
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({
+            'status': 'success',
+            'car': serializer.data,
+        })
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'status': 'success',
+                'message': 'Car updated successfully.',
+                'car': serializer.data,
+            })
+        return Response({
+            'status': 'error',
+            'errors': serializer.errors,
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        plate = str(instance)
+        instance.delete()
+        return Response({
+            'status': 'success',
+            'message': f'{plate} has been deleted.',
+        }, status=status.HTTP_200_OK)
